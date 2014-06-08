@@ -1,0 +1,25 @@
+﻿@using System.Collections
+@using VideoLinks.Controllers
+@using VideoLinks.Models
+
+@{
+    ViewBag.Title = "Home Page";
+
+}
+   
+<div>runtime: @ViewBag.Watch</div>
+@foreach (Video vid in ViewBag.Videos)
+{
+    var base64 = Convert.ToBase64String(vid.Image);
+    var imgSrc = String.Format("data:image/gif;base64,{0}", base64);
+    <div>
+        @Html.Label(vid.Link)
+    </div>
+    <div>
+        @Html.Label(vid.Name)
+    </div>
+        <div> <img src="@imgSrc" /></div> 
+    
+
+        @*<img src="@Url.Action("getImg", "Home", new { img = 1s })" alt="@vid.Name" />*@
+}
