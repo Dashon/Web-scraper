@@ -21,9 +21,9 @@ namespace VideoLinks.Models
 
 
         public VideosEntities()
-            : base("VideoApp")
+            : base("DefaultConnection")
         {
-            //Debug.Write(Database.Connection.ConnectionString);
+            Debug.Write(Database.Connection.ConnectionString);
         }
 
 

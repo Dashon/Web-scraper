@@ -20,7 +20,7 @@ namespace VideoLinks.Scraper
             var document = await GetHtmlDocument("http://www.primewire.ag/index.php?sort=featured&page=1");
             var totalpages = (numberOfPages == 0) ? GetTotalPages(document) : numberOfPages;
 
-            Parallel.For(1, totalpages, i =>
+            Parallel.For(0, totalpages, i =>
           {
               Debug.WriteLine("SCRAPE PAGE {0} - {1}", i, DateTime.Now);
               var nextpage = "http://www.primewire.ag/index.php?sort=featured&page=" + i;
