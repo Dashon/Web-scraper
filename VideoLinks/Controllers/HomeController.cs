@@ -10,14 +10,14 @@ namespace VideoLinks.Controllers
     public class HomeController : Controller
     {
 
-        public async Task<ActionResult> Index()
+        public ActionResult Index()
         {
             var watch = new Stopwatch();
             watch.Start();
             var db = new VideosEntities();
             //ViewBag.Message = "Modify this template to jump-start your ASP.NET MVC application.";
             var scraper = new PrimeWireScraper();
-             await scraper.DownloadAllMovies(1);
+       //      scraper.DownloadAllMovies(1);
             watch.Stop();
             ViewBag.Watch = watch.Elapsed;
             ViewBag.Videos = db.Videos.ToList();
