@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Web;
+using System.Web.Mvc;
 
 namespace VideoLinks.Helpers
 {
@@ -49,6 +50,21 @@ namespace VideoLinks.Helpers
                 }
             }
             return value;
+        }
+
+        public static MvcHtmlString ImageLink(this HtmlHelper htmlHelper,
+          string source, string alternativeText, string href)
+        {
+            //declare the html helper 
+            var image = new TagBuilder("image");
+            var link = new TagBuilder("a");
+            link.MergeAttribute("href", href);
+            //hook the properties and add any required logic
+            image.MergeAttribute("src", source);
+            image.MergeAttribute("alt", alternativeText);
+            //create the helper with a self closing capability
+            link.InnerHtml += image;
+            return MvcHtmlString.Create(link.ToString(TagRenderMode.SelfClosing));
         }
     }
 }

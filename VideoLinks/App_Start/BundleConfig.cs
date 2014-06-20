@@ -26,6 +26,14 @@ namespace VideoLinks
             bundles.Add(new StyleBundle("~/Content/css").Include(
                       "~/Content/bootstrap.css",
                       "~/Content/site.css"));
+
+            bundles.Add(new ScriptBundle("~/ng").Include(
+                        "~/Scripts/angular.min.js",
+                        "~/Scripts/angular-route.min.js",
+                        "~/Scripts/angular-cookies.min.js"));
+
+            bundles.Add(new ScriptBundle("~/app").IncludeDirectory("~/Scripts/angular", "app.js", true));
+
         }
     }
 }

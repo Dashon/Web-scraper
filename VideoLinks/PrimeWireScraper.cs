@@ -57,7 +57,6 @@ namespace VideoLinks.Scraper
         public void RefreshTvShowLinks(string url)
         {
             var document = GetHtmlDocument(url);
-            var videos = new List<Video>();
             foreach (var episode in document.DocumentNode.SelectNodes("//div[@class='tv_episode_item']/a"))
             {
                 var episodeLink = episode.AttributeValue("href");
@@ -74,7 +73,7 @@ namespace VideoLinks.Scraper
             var document = GetHtmlDocument(url);
             var xPath = "//table[contains(@class,'movie_version')]/tbody/tr/td/span[contains(@class,'quality_')]";
             var movieLinks = document.DocumentNode.SelectNodes(xPath);
-            \
+            
             //delete all existing Links
             foreach (Link link in video.Links)
             {
@@ -123,19 +122,19 @@ namespace VideoLinks.Scraper
 
         private void ScrapePage(string url)
         {
-            var document = GetHtmlDocument(url);
-            foreach (var video in document.DocumentNode.SelectNodes("//div[@class='index_item index_item_ie']"))
-            {
-                var primeWireUrl = "http://www.primewire.ag";
-                var videoLink = primeWireUrl + video.FirstChild.AttributeValue("href");
-                ParseVideoPage(videoLink, false);
-            };
+            //var document = GetHtmlDocument(url);
+            //foreach (var video in document.DocumentNode.SelectNodes("//div[@class='index_item index_item_ie']"))
+            //{
+            //    var primeWireUrl = "http://www.primewire.ag";
+            //    var videoLink = primeWireUrl + video.FirstChild.AttributeValue("href");
+            //    ParseVideoPage(videoLink, false);
+            //    break;
+            //};
         }
 
         private void ParseAllEpisodes(string firstPage, bool allPages = true)
         {
             var document = GetHtmlDocument(firstPage);
-            var videos = new List<Video>();
             foreach (var episode in document.DocumentNode.SelectNodes("//div[@class='tv_episode_item']/a"))
             {
                 var episodeLink = episode.AttributeValue("href");
@@ -158,7 +157,7 @@ namespace VideoLinks.Scraper
             var existingVideo = db.Videos.SingleOrDefault(x => x.ImdbLink == IMDB && x.Name == name);
             if (existingVideo != null)
             {
-                return null;
+               // return null;
                 newVideo = existingVideo;
             }
 
@@ -172,7 +171,7 @@ namespace VideoLinks.Scraper
             newVideo.Link = url;
             newVideo.ImdbLink = IMDB;
             newVideo.BuyLink = movieInfo.SelectSingleNode("//div[@class='mlink_buydvd']/a").AttributeValue("href");
-            //newVideo.TrailerLink = movieInfo.SelectSingleNode("//div[@class='movie_version_link']/a").InnerTextValue();
+            newVideo.TrailerLink = movieInfo.SelectSingleNode("//span[@class='movie_version_link']/a[2]").AttributeValue("href");
             newVideo.Genres = new List<Genre>();
             newVideo.Countries = new List<Country>();
             newVideo.Actors = new List<Actor>();
@@ -253,8 +252,8 @@ namespace VideoLinks.Scraper
             var uri = new Uri(url);
             var document = new MyHtmlDocument();
             var client = new MyWebClient();
-            document.ResponseUri = client.ResponseUri;
             document.LoadHtml(client.DownloadString(url));
+            document.ResponseUri = client.ResponseUri;
 
             Debug.WriteLine("Load: {1} - {0}", DateTime.Now, url);
 

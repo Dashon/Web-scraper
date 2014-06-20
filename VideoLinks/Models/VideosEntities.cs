@@ -23,7 +23,8 @@ namespace VideoLinks.Models
         public VideosEntities()
             : base("DefaultConnection")
         {
-            Debug.Write(Database.Connection.ConnectionString);
+           // Debug.Write(Database.Connection.ConnectionString);
+            this.Configuration.ProxyCreationEnabled = false; 
         }
 
 

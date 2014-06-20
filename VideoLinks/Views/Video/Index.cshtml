@@ -1,0 +1,106 @@
+﻿@model VideoLinks.Models.Video
+@{
+    ViewBag.Title = "Watch -";
+}
+
+<div ng-controller="DetailsCtrl">
+    <h2>{{video.Name}}</h2>
+    <div class="video_info">
+        <div>
+            {{video.Description}}
+        </div>
+
+        <div class="video_details">
+            <div class="left">
+                Released
+            </div>
+            <div class="right">
+                {{video.ReleaseDate}}
+            </div>
+        </div>
+        <div class="video_details">
+            <div class="left">
+                Runtime
+            </div>
+            <div class="right">
+                {{video.Runtime}}
+            </div>
+        </div>
+
+        <div class="video_details">
+            <div class="left">
+                Generes
+            </div>
+            <div class="right">
+                <div ng-repeat="genre in genres" class="row">
+                    <span class="hListItem">{{genre.Name}}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="video_details">
+            <div class="left">
+                Actors
+            </div>
+            <div class="right">
+                <div ng-repeat="actor in actors" class="row">
+                    <span class="hListItem">{{actor.Name}}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="video_details links">
+
+            <a href="{{video.ImdbLink}}">IMDB</a> |
+            <a href="{{video.TrailerLink}}">Trailer</a> |
+            <a href="{{video.BuyLink}}">Buy</a> |
+        </div>
+    </div>
+    <h2>{{video.Name}} Links</h2>
+    <ul class="video_links">
+        <li ng-repeat="link in links">
+            {{link.Quality}} - <a href="{{link.URL}}">Version {{$index + 1}}</a>
+        </li>
+    </ul>
+</div>
+<style>
+    .video_details {
+        position: relative;
+        float: left;
+        left: 0px;
+        width: 50%;
+        margin-bottom: 10px;
+    }
+
+        .video_details .left {
+            position: relative;
+            float: left;
+            left: 5px;
+            width: 50%;
+        }
+
+        .video_details .right {
+            position: relative;
+            float: right;
+            right: 5px;
+            width: 50%;
+        }
+
+        .video_details .links a {
+            margin-left: 3px;
+        }
+
+    .video_info {
+    }
+
+    .video_pic {
+        position: relative;
+        float: right;
+        left: 5px;
+        width: 50%;
+        margin-bottom: 10px;
+    }
+
+    .video_links {
+    }
+</style>
