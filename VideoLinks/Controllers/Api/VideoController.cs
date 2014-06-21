@@ -17,16 +17,28 @@ namespace VideoLinks.Controllers.Api
         private VideosEntities db = new VideosEntities();
 
         // GET api/Video
-        public IEnumerable<Video> GetVideos()
+        public IQueryable GetVideos()
         {
-            return db.Videos;
+            return db.Videos.Select(x => new { x.Name, x.Image, x.Genres, x.Description, x.Id });
         }
 
         // GET api/Video/5
         [ResponseType(typeof(Video))]
         public IHttpActionResult GetVideo(int id)
         {
-            Video video = db.Videos.Find(id);
+            var video = db.Videos.Select(x => new
+            {
+                video = x,
+                x.Genres,
+                x.Actors,
+                Links = x.Links.Select(l => new
+                {
+                    l.URL,
+                    l.Host,
+                    l.Quality
+                })
+            }).FirstOrDefault(x => x.video.Id == id);
+
             if (video == null)
             {
                 return NotFound();

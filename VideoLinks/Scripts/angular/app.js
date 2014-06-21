@@ -1,31 +1,33 @@
 ﻿'use strict';
 
-var app = angular.module('videoLinks', []);
+var app = angular.module('videoLinks', ['ngRoute']);
 
 
-//app.config(['$routeProvider', '$locationProvider', '$httpProvider', function ($routeProvider, $locationProvider, $httpProvider) {
+app.config(['$routeProvider', '$locationProvider', '$httpProvider', function ($routeProvider, $locationProvider, $httpProvider) {
 
-//    //================================================
-//    // Add an interceptor for AJAX errors
-//    //================================================
-//    $httpProvider.responseInterceptors.push(['$q', '$location', function ($q, $location) {
-//        return function (promise) {
-//            return promise.then(
-//              // Success: just return the response
-//              function (response) {
-//                  return response;
-//              },
-//              // Error: check the error status to get only the 401
-//              function (response) {
-//                  if (response.status === 401)
-//                      $location.url('/signin');
-//                  return $q.reject(response);
-//              }
-//            );
-//        }
-//    }]);
+    //================================================
+    // Add an interceptor for AJAX errors
+    //================================================
+    $httpProvider.responseInterceptors.push(['$q', '$location', function ($q, $location) {
+        return function (promise) {
+            return promise.then(
+              // Success: just return the response
+              function (response) {
+                  return response;
+              },
+              // Error: check the error status to get only the 401
+              function (response) {
+                  if (response.status === 401)
+                      $location.url('/signin');
+                  return $q.reject(response);
+              }
+            );
+        }
+    }]);
 
-//}]);
+    $locationProvider.html5Mode(true);
+
+}]);
 
 app.factory('AppService', ['$http', '$q', '$timeout', function ($http, $q, $timeout) {
     function getData(endpoint) {
@@ -56,7 +58,7 @@ app.factory('AppService', ['$http', '$q', '$timeout', function ($http, $q, $time
             });
         },
         Video: function (id) {
-            return getData('../api/video/' + id).then(function (video) {
+            return getData('../../api/video/' + id).then(function (video) {
 
                 return video;
             });
@@ -73,11 +75,13 @@ app.controller('HomeCtrl', ['$scope', 'AppService',
         });
     }]);
 
-app.controller('DetailsCtrl', ['$scope', 'AppService', '$routeParams',
-    function ($scope, AppService, $routeParams) {
-        var id = $routeParams.video;
-        AppService.Videos(id).then(function (data) {
-            $scope.video = data;
-        });
 
+app.controller('DetailsCtrl', ['$scope', 'AppService',
+    function ($scope, AppService) {
+        //hack to get the id form the url
+        var id = window.location.pathname.match(/\d+/);
+        
+        AppService.Video(id).then(function (data) {
+            $scope.data = data;
+        });
     }]);

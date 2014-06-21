@@ -20,20 +20,26 @@
 
     <ul ng-show="layout == 'grid'" class="grid">
         <li ng-repeat="video in videosf =(videos | filter:{Name:searchVids})">
-            <a href="../Video/Details{{video.Id}}" target=" _blank"><img ng-src="data:image/png;base64,{{video.Image}}" /></a>
-            <p>{{video.Name}}</p>
+            <a href="../Video/{{video.Id}}" target=" _blank"><img ng-src="data:image/png;base64,{{video.Image}}" /></a>
+            <span>{{video.Name}}</span>
+            <div>
+                <span ng-repeat="genre in video.Genres" class="hListItem">{{genre.Name}}</span>
+            </div>
         </li>
     </ul>
 
 
     <ul ng-show="layout == 'list'" class="list">
         <li ng-repeat="video in videos | filter:{Name:searchVids}">
-            <a href="../Video/Details{{video.Id}}" target="_blank">
+            <a href="../Video/{{video.Id}}" target="_blank">
                 <img ng-src="data:image/png;base64,{{video.Image}}" />
             </a>
 
             <p>{{video.Name}}</p>
-            <p>{{video.Description}}</p>
+            <p style="font-weight:normal">{{video.Description}}</p>
+            <p>
+                <span ng-repeat="genre in video.Genres" class="hListItem">{{genre.Name}}</span>
+            </p>
         </li>
     </ul>
     <div ng-hide="videosf.length" class="NoResults">No results found</div>
