@@ -45,11 +45,15 @@ namespace VideoLinks.Scraper
                     currentPage = i;
                     if (numberOfPages > 0)
                         numberOfPages -= 1;
+
                     Debug.WriteLine("SCRAPE PAGE {0} - {1}", i, DateTime.Now);
+
                     var nextpage = "http://www.primewire.ag/index.php?sort=featured&page=" + i;
+
                     var task = new Task(() => ScrapePageAsync(nextpage, redoIfFound));
-                    Task.Delay(new Random().Next(1000, 7000));
+                    TaskDelay();
                     task.Start();
+
                     downLoadProgressRepository.UpdateLastPage(i + 1);
                     downLoadProgressRepository.SaveChanges();
                 }
@@ -86,7 +90,7 @@ namespace VideoLinks.Scraper
             foreach (var video in allVideos)
             {
                 var task = new Task(() => RefreshVideoLinks(video));
-                Task.Delay(new Random().Next(1000, 7000));
+                TaskDelay();
                 task.Start();
                 allTask.Add(task);
             }
@@ -102,7 +106,6 @@ namespace VideoLinks.Scraper
             {
                 var nextpage = "http://www.primewire.ag/index.php?tv=&page=" + i;
                 ScrapePageAsync(nextpage, redoIfFound);
-
             }
 
             return true;
@@ -142,7 +145,6 @@ namespace VideoLinks.Scraper
 
         public void RefreshVideoLinks(Video video)
         {
-
             if (video == null)
             {
                 return;
@@ -168,9 +170,9 @@ namespace VideoLinks.Scraper
             {
                 foreach (HtmlNode link in movieLinks)
                 {
+                    var newLink = new Link();
 
                     var linkTableRow = link.ParentNode.ParentNode;
-                    var newLink = new Link();
                     var linkUrl = linkTableRow.SelectSingleNode("td[2]/span/a").AttributeValue("href");
                     var quality = linkTableRow.SelectSingleNode("td[1]/span").AttributeValue("class");
                     var host = linkTableRow.SelectSingleNode("td[3]/span").InnerTextValue();
@@ -185,6 +187,7 @@ namespace VideoLinks.Scraper
                     {
                         host = match.Groups[1].Value;
                     }
+
                     var newHost = hostRepository.Items.FirstOrDefault(x => x.Name == host);
                     if (newHost == null)
                     {
@@ -193,16 +196,16 @@ namespace VideoLinks.Scraper
                         hostRepository.SaveChanges();
                     }
 
-                    quality = quality.Replace("quality_", "");
-                    newLink.Quality = quality;
+                    newLink.Quality = quality.Replace("quality_", "");
                     newLink.Host = newHost;
                     newLink.URL = redirectedUrl;
                     newLink.Video = video;
 
                     linkRepository.AddItem(newLink);
                     linkRepository.SaveChanges();
+
                     Debug.WriteLine("LINK:{0} - {1})", video.Name, DateTime.Now);
-                    Task.Delay(new Random().Next(1000, 7000));
+                    TaskDelay();
                 }
             }
             catch (Exception e)
@@ -211,6 +214,10 @@ namespace VideoLinks.Scraper
             }
         }
 
+        private void TaskDelay()
+        {
+            Task.Delay(new Random().Next(1000, 7000));
+        }
 
         #region Helpers
 
@@ -230,7 +237,7 @@ namespace VideoLinks.Scraper
                     {
                         videoLink = primeWireUrl + video.FirstChild.AttributeValue("href");
                         var task = new Task<Video>(() => ParseVideoPage(videoLink, false, redoIfFound));
-                        Task.Delay(new Random().Next(1000, 7000));
+                        TaskDelay();
                         task.Start();
                         allTask.Add(task);
                     }
