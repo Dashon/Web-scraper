@@ -4,8 +4,6 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace VideoLinks.Models
 {
-   
-
     public class Video : IEntity
     {
         public int Id { get; set; }

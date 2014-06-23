@@ -80,7 +80,7 @@ app.controller('DetailsCtrl', ['$scope', 'AppService',
     function ($scope, AppService) {
         //hack to get the id form the url
         var id = window.location.pathname.match(/\d+/);
-        
+
         AppService.Video(id).then(function (data) {
             $scope.data = data;
         });

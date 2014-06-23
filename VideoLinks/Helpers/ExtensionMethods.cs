@@ -1,4 +1,5 @@
-﻿using HtmlAgilityPack;
+﻿using System.Diagnostics;
+using HtmlAgilityPack;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -65,6 +66,27 @@ namespace VideoLinks.Helpers
             //create the helper with a self closing capability
             link.InnerHtml += image;
             return MvcHtmlString.Create(link.ToString(TagRenderMode.SelfClosing));
+        }
+
+        public static MyHtmlDocument GetHtmlDocument(this MyWebClient client, string url)
+        {
+            try
+            {
+                if (!Uri.IsWellFormedUriString(url, UriKind.Absolute)) { return null; }
+                var uri = new Uri(url);
+                var document = new MyHtmlDocument();
+                document.LoadHtml(client.DownloadString(url));
+                document.ResponseUri = client.ResponseUri;
+
+                Debug.WriteLine("Load: {1} - {0}", DateTime.Now, url);
+
+                return document;
+            }
+            catch (Exception e)
+            {
+                Debug.WriteLine("!!!!!!URL FAILED--{0}----because {1}", url, e);
+                return null;
+            }
         }
     }
 }

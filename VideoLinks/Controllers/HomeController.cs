@@ -9,25 +9,9 @@ namespace VideoLinks.Controllers
 {
     public class HomeController : Controller
     {
-
         public ActionResult Index()
         {
-            var watch = new Stopwatch();
-            watch.Start();
-            var db = new VideosEntities();
-            var scraper = new PrimeWireScraper();
-           // scraper.DownloadAllMovies(1);
-            watch.Stop();
-            ViewBag.Watch = watch.Elapsed;
-            ViewBag.Videos = db.Videos.ToList();
             return View();
-        }
-
-
-        public FileContentResult GetImg(int vidId)
-        {
-            var db = new VideosEntities();
-            return new FileContentResult(db.Videos.Find(vidId).Image, "image/jpeg");
         }
     }
 }

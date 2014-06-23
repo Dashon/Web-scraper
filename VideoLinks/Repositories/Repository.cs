@@ -32,6 +32,12 @@ namespace VideoLinks.Repositories
             return _entityDbSet.Add(newItem);
         }
 
+        public TEntity UpdateItem(TEntity newItem)
+        {
+            return _entityDbSet.Attach(newItem);
+        }
+
+
         public List<TEntity> ItemList()
         {
             return _entityDbSet.ToList<TEntity>();
@@ -60,6 +66,7 @@ namespace VideoLinks.Repositories
 
         public int SaveChanges()
         {
+            
             return _context.SaveChanges();
         }
     }

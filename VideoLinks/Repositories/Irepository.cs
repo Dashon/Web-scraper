@@ -17,6 +17,7 @@ namespace VideoLinks.Repositories
         /// </summary>
         IQueryable<T> Items { get; }
         T AddItem(T newItem);
+        T UpdateItem(T newItem);
         List<T> ItemList();
         T FindByID(int id);
         T RemoveByID(int id);

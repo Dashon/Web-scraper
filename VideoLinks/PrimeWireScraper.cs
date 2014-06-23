@@ -5,163 +5,309 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Web;
 using System.Web.Http.ModelBinding;
 using HtmlAgilityPack;
+using Microsoft.Ajax.Utilities;
 using VideoLinks.Models;
 using VideoLinks.Helpers;
 using System.Threading.Tasks;
+using VideoLinks.Repositories;
 
 namespace VideoLinks.Scraper
 {
     public class PrimeWireScraper
     {
-        public bool DownloadAllMovies(int numberOfPages = 0)
-        {
-            var document = GetHtmlDocument("http://www.primewire.ag/index.php?sort=featured&page=1");
-            var totalpages = (numberOfPages == 0) ? GetTotalPages(document) : numberOfPages;
 
-            for (int i = 0; i <= totalpages; i++)
+        private const string primeWireUrl = "http://www.primewire.ag";
+
+        public bool DownloadAllMovies(bool redoIfFound, int numberOfPages = 0)
+        {
+            var videoEntities = new VideosEntities();
+            var downLoadProgressRepository = new DownLoadProgressRepository(videoEntities);
+
+            var currentPage = 0;
+            var lastPage = 0;
+            var result = false;
+
+            if (downLoadProgressRepository.Items.Any())
             {
-                Debug.WriteLine("SCRAPE PAGE {0} - {1}", i, DateTime.Now);
-                var nextpage = "http://www.primewire.ag/index.php?sort=featured&page=" + i;
-                ScrapePage(nextpage);
-            };
-            return true;
+                lastPage = (int)downLoadProgressRepository.Items.FirstOrDefault().LastPage;
+            }
+
+            try
+            {
+                var totalpages = (numberOfPages == 0) ? GetTotalPages("http://www.primewire.ag/index.php?sort=featured&page=" + lastPage) : numberOfPages;
+
+                for (int i = lastPage; i <= totalpages; i++)
+                {
+                    currentPage = i;
+                    if (numberOfPages > 0)
+                        numberOfPages -= 1;
+                    Debug.WriteLine("SCRAPE PAGE {0} - {1}", i, DateTime.Now);
+                    var nextpage = "http://www.primewire.ag/index.php?sort=featured&page=" + i;
+                    var task = new Task(() => ScrapePageAsync(nextpage, redoIfFound));
+                    Task.Delay(new Random().Next(1000, 7000));
+                    task.Start();
+                    downLoadProgressRepository.UpdateLastPage(i + 1);
+                    downLoadProgressRepository.SaveChanges();
+                }
+                result = true;
+            }
+            catch (Exception e)
+            {
+                //Skip Page and reTry
+                Debug.WriteLine(
+                   "________________START OVER______________________{0}", e);
+
+                downLoadProgressRepository.AddSkipedPage(currentPage);
+                downLoadProgressRepository.UpdateLastPage(lastPage + 1);
+                downLoadProgressRepository.SaveChanges();
+
+                DownloadAllMovies(redoIfFound, numberOfPages);
+            }
+
+            return result;
         }
 
-        //Todo: Requires a seperate Video Parser.
-        public bool DownloadAllTvShows(int numberOfPages = 0)
-        {
-            var document = GetHtmlDocument("http://www.primewire.ag/index.php?tv=&page=1");
-            var totalpages = (numberOfPages == 0) ? GetTotalPages(document) : numberOfPages;
 
+        public void RefetchNoLinkVideos(int maxVideos = 0)
+        {
+            var videoEntities = new VideosEntities();
+            var videoRepository = new Repository<Video, VideosEntities>(videoEntities);
+
+            var allTask = new List<Task>();
+            var allVideos = videoRepository.Items.Where(x => !x.Links.Any());
+
+            if (maxVideos > 0)
+                allVideos.Take(maxVideos);
+
+            foreach (var video in allVideos)
+            {
+                var task = new Task(() => RefreshVideoLinks(video));
+                Task.Delay(new Random().Next(1000, 7000));
+                task.Start();
+                allTask.Add(task);
+            }
+            Task.WaitAll(allTask.ToArray());
+        }
+
+
+        //Todo: Requires a seperate Video Parser.
+        public bool DownloadAllTvShows(bool redoIfFound, int numberOfPages = 0)
+        {
+            var totalpages = (numberOfPages == 0) ? GetTotalPages("http://www.primewire.ag/index.php?tv=&page=1") : numberOfPages;
             for (int i = 0; i <= totalpages; i++)
             {
                 var nextpage = "http://www.primewire.ag/index.php?tv=&page=" + i;
-                ScrapePage(nextpage);
-            };
+                ScrapePageAsync(nextpage, redoIfFound);
+
+            }
 
             return true;
         }
 
-        public Video DownloadTvShow(string url)
+
+        public Video DownloadTvShow(string url, bool redoIfFound)
         {
-            return ParseVideoPage(url, true);
-        }
-        public Video DownloadMovie(string url)
-        {
-            return ParseVideoPage(url, false);
+            return ParseVideoPage(url, true, redoIfFound);
         }
 
-        public void RefreshTvShowLinks(string url)
+
+        public Video DownloadMovie(string url, bool redoIfFound)
         {
-            var document = GetHtmlDocument(url);
-            foreach (var episode in document.DocumentNode.SelectNodes("//div[@class='tv_episode_item']/a"))
+            return ParseVideoPage(url, false, redoIfFound);
+        }
+
+
+        public void RefreshTvShowLinks(Video video)
+        {
+            var document = new MyWebClient().GetHtmlDocument(video.Link);
+            if (document != null)
+                foreach (var episode in document.DocumentNode.SelectNodes("//div[@class='tv_episode_item']/a"))
+                {
+                    var episodeLink = episode.AttributeValue("href");
+                    try
+                    {
+                        //RefreshVideoLinks(episodeLink);
+                    }
+                    catch (Exception e)
+                    {
+                        //Debug.WriteLine("!!!!!!URL FAILED----{0}----because {1}", url, e);
+                    }
+                }
+        }
+
+
+        public void RefreshVideoLinks(Video video)
+        {
+
+            if (video == null)
             {
-                var episodeLink = episode.AttributeValue("href");
-                RefreshVideoLinks(episodeLink);
-            };
-        }
+                return;
+            }
+            var videoEntities = new VideosEntities();
+            var linkRepository = new Repository<Link, VideosEntities>(videoEntities);
+            var hostRepository = new Repository<Host, VideosEntities>(videoEntities);
 
-        public void RefreshVideoLinks(string url)
-        {
-            var db = new VideosEntities();
-            var video = db.Videos.SingleOrDefault(v => v.Link == url);
-
-            if (video == null) { return; }
-            var document = GetHtmlDocument(url);
+            var document = new MyWebClient().GetHtmlDocument(video.Link);
             var xPath = "//table[contains(@class,'movie_version')]/tbody/tr/td/span[contains(@class,'quality_')]";
             var movieLinks = document.DocumentNode.SelectNodes(xPath);
-            
+
             //delete all existing Links
-            foreach (Link link in video.Links)
+            if (video.Links != null)
             {
-                db.Links.Remove(link);
+                foreach (Link link in video.Links)
+                {
+                    linkRepository.Remove(link);
+                }
             }
 
-            foreach (HtmlNode link in movieLinks)
+            try
             {
-                var tableRow = link.ParentNode.ParentNode;
-                var newLink = new Link();
-                var linkUrl = tableRow.SelectSingleNode("td[2]/span/a").AttributeValue("href");
-                var quality = tableRow.SelectSingleNode("td[1]/span").AttributeValue("class");
-                var host = tableRow.SelectSingleNode("td[3]/span").InnerTextValue();
-
-                //Load Link URL and Extract actual URL
-                var urlDoc = GetHtmlDocument("http://www.primewire.ag/" + linkUrl);
-
-                var actualUrl = urlDoc.ResponseUri;
-
-                //Extract HostName from javascript statment
-                Match match = Regex.Match(host, @"'([^']*)");
-                if (match.Success)
+                foreach (HtmlNode link in movieLinks)
                 {
-                    host = match.Groups[1].Value;
-                }
-                var newHost = db.Hosts.SingleOrDefault(x => x.Name == host);
-                if (newHost == null)
-                {
-                    newHost = new Host { Name = host };
-                    db.Hosts.Add(newHost);
-                }
 
-                quality = quality.Replace("quality_", "");
-                newLink.Quality = quality;
-                newLink.Host = newHost;
-                newLink.URL = actualUrl;
-                newLink.Video = video;
+                    var linkTableRow = link.ParentNode.ParentNode;
+                    var newLink = new Link();
+                    var linkUrl = linkTableRow.SelectSingleNode("td[2]/span/a").AttributeValue("href");
+                    var quality = linkTableRow.SelectSingleNode("td[1]/span").AttributeValue("class");
+                    var host = linkTableRow.SelectSingleNode("td[3]/span").InnerTextValue();
 
-                db.Links.Add(newLink);
-                Debug.WriteLine("LINK:{0} - {1})", video.Name, DateTime.Now);
-                db.SaveChanges();
+                    //Load Link URL and retrieve redirected url
+                    var urlDoc = new MyWebClient().GetHtmlDocument("http://www.primewire.ag/" + linkUrl);
+                    var redirectedUrl = urlDoc.ResponseUri;
+
+                    //Extract HostName from javascript statment
+                    Match match = Regex.Match(host, @"'([^']*)");
+                    if (match.Success)
+                    {
+                        host = match.Groups[1].Value;
+                    }
+                    var newHost = hostRepository.Items.FirstOrDefault(x => x.Name == host);
+                    if (newHost == null)
+                    {
+                        newHost = new Host { Name = host };
+                        hostRepository.AddItem(newHost);
+                        hostRepository.SaveChanges();
+                    }
+
+                    quality = quality.Replace("quality_", "");
+                    newLink.Quality = quality;
+                    newLink.Host = newHost;
+                    newLink.URL = redirectedUrl;
+                    newLink.Video = video;
+
+                    linkRepository.AddItem(newLink);
+                    linkRepository.SaveChanges();
+                    Debug.WriteLine("LINK:{0} - {1})", video.Name, DateTime.Now);
+                    Task.Delay(new Random().Next(1000, 7000));
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.WriteLine("!!!!!!URL FAILED----{0}----because {1}", video.Link, e);
             }
         }
+
 
         #region Helpers
 
-        private void ScrapePage(string url)
+        private List<Video> ScrapePageAsync(string url, bool redoIfFound)
         {
-            //var document = GetHtmlDocument(url);
-            //foreach (var video in document.DocumentNode.SelectNodes("//div[@class='index_item index_item_ie']"))
-            //{
-            //    var primeWireUrl = "http://www.primewire.ag";
-            //    var videoLink = primeWireUrl + video.FirstChild.AttributeValue("href");
-            //    ParseVideoPage(videoLink, false);
-            //    break;
-            //};
-        }
 
-        private void ParseAllEpisodes(string firstPage, bool allPages = true)
-        {
-            var document = GetHtmlDocument(firstPage);
-            foreach (var episode in document.DocumentNode.SelectNodes("//div[@class='tv_episode_item']/a"))
+
+            var document = new MyWebClient().GetHtmlDocument(url);
+            var allTask = new List<Task>();
+            var allVideos = new List<Video>();
+
+            if (document != null)
+                foreach (var video in document.DocumentNode.SelectNodes("//div[@class='index_item index_item_ie']"))
+                {
+                    var videoLink = string.Empty;
+                    try
+                    {
+                        videoLink = primeWireUrl + video.FirstChild.AttributeValue("href");
+                        var task = new Task<Video>(() => ParseVideoPage(videoLink, false, redoIfFound));
+                        Task.Delay(new Random().Next(1000, 7000));
+                        task.Start();
+                        allTask.Add(task);
+                    }
+                    catch (Exception e)
+                    {
+                        Debug.WriteLine("!!!!!!Scrape FAILED----{0}----because {1}", videoLink, e);
+                    }
+                }
+            Task.WaitAll(allTask.ToArray());
+
+            foreach (Task<Video> task in allTask)
             {
-                var episodeLink = episode.AttributeValue("href");
-                ParseVideoPage(episodeLink, true);
-            };
+                allVideos.Add(task.Result);
+            }
+
+            return allVideos;
         }
 
-        private Video ParseVideoPage(string url, bool isTvShow)
+
+        private void ParseAllEpisodes(string firstPage, bool redoIfFound, bool allPages = true)
         {
-            var db = new VideosEntities();
-            var document = GetHtmlDocument(url);
+            var document = new MyWebClient().GetHtmlDocument(firstPage);
+            var allTask = new List<Task>();
+            var allVideos = new List<Video>();
+
+            if (document != null)
+                foreach (var episode in document.DocumentNode.SelectNodes("//div[@class='tv_episode_item']/a"))
+                {
+                    var episodeLink = string.Empty;
+                    try
+                    {
+                        episodeLink = episode.AttributeValue("href");
+                        var task = new Task<Video>(() => ParseVideoPage(episodeLink, true, redoIfFound));
+                        task.Start();
+                        allTask.Add(task);
+                        allVideos.Add(task.Result);
+                    }
+                    catch (Exception e)
+                    {
+                        Debug.WriteLine("!!!!!!Scrape FAILED----{0}----because {1}", episodeLink, e);
+
+                    }
+                }
+        }
+
+
+        private Video ParseVideoPage(string url, bool isTvShow, bool redoIfFound)
+        {
+            var videoEntities = new VideosEntities();
+            var videoRepository = new Repository<Video, VideosEntities>(videoEntities);
+            var actorRepository = new Repository<Actor, VideosEntities>(videoEntities);
+            var genreRepository = new Repository<Genre, VideosEntities>(videoEntities);
+            var countryRepository = new Repository<Country, VideosEntities>(videoEntities);
+
+            var document = new MyWebClient().GetHtmlDocument(url);
             var movieInfo = document.DocumentNode.SelectSingleNode("//div[@class='index_container']");
-            var IMDB = movieInfo.SelectSingleNode("//div[@class='mlink_imdb']/a").AttributeValue("href");
+            var imdb = movieInfo.SelectSingleNode("//div[@class='mlink_imdb']/a").AttributeValue("href");
             var name = movieInfo.SelectSingleNode("//div[@class='stage_navigation movie_navigation']").InnerTextValue().Trim();
             var actors = movieInfo.SelectNodes("//span[@class='movie_info_actors']/a") ?? new HtmlNodeCollection(null);
             var countries = movieInfo.SelectNodes("//span[@class='movie_info_country']/a") ?? new HtmlNodeCollection(null);
             var generes = movieInfo.SelectNodes("//span[@class='movie_info_genres']/a") ?? new HtmlNodeCollection(null);
             var newVideo = new Video();
 
-            var existingVideo = db.Videos.SingleOrDefault(x => x.ImdbLink == IMDB && x.Name == name);
+            var existingVideo = videoRepository.Items.FirstOrDefault(x => x.ImdbLink == imdb && x.Name == name);
             if (existingVideo != null)
             {
-               // return null;
-                newVideo = existingVideo;
+                if (redoIfFound)
+                {
+                    newVideo = existingVideo;
+                }
+                else
+                {
+                    return null;
+                }
             }
 
-            newVideo.Image = ImageToByteArray(movieInfo.SelectSingleNode("//div[@class='movie_thumb']/img").AttributeValue("src"));
+            newVideo.Image = new MyWebClient().UrlToImageByteArray(movieInfo.SelectSingleNode("//div[@class='movie_thumb']/img").AttributeValue("src"));
             newVideo.Name = name;
             newVideo.Description = movieInfo.SelectSingleNode("//table/tr[1]/td[1]/p").InnerTextValue().Trim();
             newVideo.DateAdded = DateTime.Now;
@@ -169,7 +315,7 @@ namespace VideoLinks.Scraper
             newVideo.Runtime = movieInfo.SelectSingleNode("//table/tr[3]/td[2]").InnerTextValue().ToIntIgnoreStrings();
             newVideo.Director = movieInfo.SelectSingleNode("//table/tr[6]/td[2]").InnerTextValue();
             newVideo.Link = url;
-            newVideo.ImdbLink = IMDB;
+            newVideo.ImdbLink = imdb;
             newVideo.BuyLink = movieInfo.SelectSingleNode("//div[@class='mlink_buydvd']/a").AttributeValue("href");
             newVideo.TrailerLink = movieInfo.SelectSingleNode("//span[@class='movie_version_link']/a[2]").AttributeValue("href");
             newVideo.Genres = new List<Genre>();
@@ -178,66 +324,66 @@ namespace VideoLinks.Scraper
 
             foreach (HtmlNode genre in generes)
             {
-                var newGenre = db.Genres.SingleOrDefault(x => x.Name == genre.InnerText);
+                var newGenre = genreRepository.Items.FirstOrDefault(x => x.Name == genre.InnerText);
                 if (newGenre == null)
                 {
                     newGenre = new Genre { Name = genre.InnerTextValue() };
-                    db.Genres.Add(newGenre);
+                    genreRepository.AddItem(newGenre);
+                    genreRepository.SaveChanges();
                 }
                 newVideo.Genres.Add(newGenre);
             }
 
             foreach (HtmlNode country in countries)
             {
-                var newCountry = db.Countries.SingleOrDefault(x => x.Name == country.InnerText);
+                var newCountry = countryRepository.Items.FirstOrDefault(x => x.Name == country.InnerText);
                 if (newCountry == null)
                 {
                     newCountry = new Country { Name = country.InnerTextValue() };
-                    db.Countries.Add(newCountry);
+                    countryRepository.AddItem(newCountry);
+                    countryRepository.SaveChanges();
+
                 }
                 newVideo.Countries.Add(newCountry);
             }
 
             foreach (HtmlNode actor in actors)
             {
-                var newActor = db.Actors.SingleOrDefault(x => x.Name == actor.InnerText);
+                var newActor = actorRepository.Items.FirstOrDefault(x => x.Name == actor.InnerText);
                 if (newActor == null)
                 {
                     newActor = new Actor { Name = actor.InnerTextValue() };
-                    db.Actors.Add(newActor);
+                    actorRepository.AddItem(newActor);
+                    actorRepository.SaveChanges();
+
                 }
                 newVideo.Actors.Add(newActor);
             }
 
             if (existingVideo != null)
             {
-                db.Videos.Attach(newVideo);
+                videoRepository.UpdateItem(newVideo);
             }
             else
             {
-                db.Videos.Add(newVideo);
+                videoRepository.AddItem(newVideo);
             }
+
+            videoRepository.SaveChanges();
+
             Debug.WriteLine("PARSE: {0}- {1}", newVideo.Name, DateTime.Now);
-            db.SaveChanges();
-            RefreshVideoLinks(url);
+            try
+            {
+                RefreshVideoLinks(newVideo);
+            }
+            catch (Exception e)
+            {
+                Debug.WriteLine("!!!!!!REFRESH FAILED----{0}----because {1}", name, e);
+            }
             return newVideo;
         }
 
-        private static byte[] ImageToByteArray(string url)
-        {
-            byte[] byteArray = null;
-            var webRequest = WebRequest.Create(url);
-            var webResponse = webRequest.GetResponse();
-            var responseStream = webResponse.GetResponseStream();
-            if (responseStream != null)
-            {
-                var image = System.Drawing.Image.FromStream(responseStream);
-                var memoryStream = new MemoryStream();
-                image.Save(memoryStream, System.Drawing.Imaging.ImageFormat.Png);
-                byteArray = memoryStream.ToArray();
-            }
-            return byteArray;
-        }
+
 
         private string GetUrlParameter(string rawUrl, string param)
         {
@@ -246,25 +392,18 @@ namespace VideoLinks.Scraper
             return HttpUtility.ParseQueryString(myUri.Query).Get(param);
         }
 
-        private MyHtmlDocument GetHtmlDocument(string url)
+
+
+        /// <summary>
+        /// Extracts the total page number form last page btn on any page
+        /// </summary>
+        /// <param name="document"></param>
+        /// <returns></returns>
+        private int GetTotalPages(string url)
         {
-            if (!Uri.IsWellFormedUriString(url, UriKind.Absolute)) { return null; }
-            var uri = new Uri(url);
-            var document = new MyHtmlDocument();
-            var client = new MyWebClient();
-            document.LoadHtml(client.DownloadString(url));
-            document.ResponseUri = client.ResponseUri;
-
-            Debug.WriteLine("Load: {1} - {0}", DateTime.Now, url);
-
-            return document;
-        }
-
-        private int GetTotalPages(HtmlDocument document)
-        {
+            var document = new MyWebClient().GetHtmlDocument(url);
             var totalpages = 1;
             var lastPageBtn = document.DocumentNode.SelectSingleNode("//a[text() = ' >> ']");
-            var primeWireUrl = "http://www.primewire.ag/";
             if (lastPageBtn != null)
             {
                 var param = GetUrlParameter(primeWireUrl + lastPageBtn.AttributeValue("href"), "page");
@@ -275,4 +414,5 @@ namespace VideoLinks.Scraper
 
         #endregion
     }
+
 }

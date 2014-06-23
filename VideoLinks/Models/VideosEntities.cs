@@ -18,13 +18,14 @@ namespace VideoLinks.Models
         public DbSet<Link> Links { get; set; }
         public DbSet<Vote> Votes { get; set; }
         public DbSet<Host> Hosts { get; set; }
+        public DbSet<DownloadProgress> DownloadProgress { get; set; }
 
 
         public VideosEntities()
             : base("DefaultConnection")
         {
-           // Debug.Write(Database.Connection.ConnectionString);
-            this.Configuration.ProxyCreationEnabled = false; 
+            // Debug.Write(Database.Connection.ConnectionString);
+            this.Configuration.ProxyCreationEnabled = false;
         }
 
 
