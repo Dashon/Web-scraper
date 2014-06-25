@@ -30,7 +30,9 @@ namespace VideoLinks
             bundles.Add(new ScriptBundle("~/ng").Include(
                         "~/Scripts/angular.min.js",
                         "~/Scripts/angular-route.min.js",
-                        "~/Scripts/angular-cookies.min.js"));
+                        "~/Scripts/angular-cookies.min.js",
+                        "~/Scripts/angular/ng-infinite-scroll.js"
+                       ));
 
             bundles.Add(new ScriptBundle("~/app").IncludeDirectory("~/Scripts/angular", "app.js", true));
 

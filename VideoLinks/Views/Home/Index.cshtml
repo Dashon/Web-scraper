@@ -8,7 +8,7 @@
 
 }
 
-<script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.0.7/angular-resource.min.js"></script>
+@*<script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.0.7/angular-resource.min.js"></script>s*@
 <div id="" ng-controller="HomeCtrl" ng-cloak>
 
     <div class="bar">
@@ -18,8 +18,8 @@
     </div>
 
 
-    <ul ng-show="layout == 'grid'" class="grid">
-        <li ng-repeat="video in videosf =(videos | filter:{Name:searchVids})">
+    <ul infinite-scroll="Library.nextPage()" infinite-scroll-distance="3" infinite-scroll-disabled='Library.busy' ng-show="layout == 'grid'" class="grid">
+        <li ng-repeat="video in Library.videos =(Library.videos | filter:{Name:searchVids})">
             <a href="../Video/{{video.Id}}" target=" _blank"><img ng-src="data:image/png;base64,{{video.Image}}" /></a>
             <span>{{video.Name}}</span>
             <div>
@@ -29,8 +29,8 @@
     </ul>
 
 
-    <ul ng-show="layout == 'list'" class="list">
-        <li ng-repeat="video in videos | filter:{Name:searchVids}">
+    <ul infinite-scroll="Library.nextPage()" infinite-scroll-distance="3" infinite-scroll-disabled='Library.busy' ng-show="layout == 'list'" class="list">
+        <li ng-repeat="video in Library.videos | filter:{Name:searchVids}">
             <a href="../Video/{{video.Id}}" target="_blank">
                 <img ng-src="data:image/png;base64,{{video.Image}}" />
             </a>
@@ -42,6 +42,6 @@
             </p>
         </li>
     </ul>
-    <div ng-hide="videosf.length" class="NoResults">No results found</div>
+    <div ng-hide="Library.videos.length" class="NoResults">No results found</div>
     <br class="clearfix" />
 </div>

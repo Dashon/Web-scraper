@@ -13,11 +13,10 @@ namespace VideoLinks
         {
             routes.IgnoreRoute("{resource}.axd/{*pathInfo}");
 
-
             routes.MapRoute(
-  "Video", "Video/{id}",
-  new { controller = "Video", action = "Index" },
-  new { id = @"\d+" });
+              "Video", "Video/{id}",
+              new { controller = "Video", action = "Index" },
+              new { id = @"\d+" });
 
             routes.MapRoute(
                 name: "Default",
