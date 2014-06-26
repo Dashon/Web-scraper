@@ -1,6 +1,30 @@
 ﻿'use strict';
 
-var app = angular.module('videoLinks', ['ngRoute', 'infinite-scroll']);
+var app = angular.module('videoLinks', ['ngRoute', 'infinite-scroll']).directive('modalDialog', function () {
+    return {
+        restrict: 'E',
+        scope: {
+            show: '='
+        },
+        replace: true, // Replace with the template below
+        transclude: true, // we want to insert custom content inside the directive
+        link: function (scope, element, attrs) {
+            scope.dialogStyle = {};
+            if (attrs.width)
+                scope.dialogStyle.width = attrs.width;
+            if (attrs.height)
+                scope.dialogStyle.height = attrs.height;
+            scope.hideModal = function () {
+                scope.show = false;
+            };
+        },
+        template: "<div class='ng-modal' ng-show='show'>" +
+                  "<div class='ng-modal-overlay''></div>" +
+                  "<div class='ng-modal-dialog' ng-style='dialogStyle'>" +
+                  "<div class='ng-modal-dialog-content' ng-transclude></div>" +
+                  "</div></div>"
+    };
+});;
 
 
 app.config(['$routeProvider', '$locationProvider', '$httpProvider', function ($routeProvider, $locationProvider, $httpProvider) {
@@ -30,42 +54,40 @@ app.config(['$routeProvider', '$locationProvider', '$httpProvider', function ($r
 }]);
 
 
-app.factory('AppService', ['$http', '$q', function ($http, $q) {
+app.service('AppService', ['$http', '$q', function ($http, $q) {
+    var orderByParam = '';
+    var filterParam = '';
+    var nextPageNumber = 0;
 
     var library = function () {
         this.videos = [];
         this.busy = false;
-        this.after = 0;
-        this.orderBy = 'releaseDate desc';
+        this.orderBy = 'ReleaseDate desc';
         this.filter = '';
     };
-
 
     library.prototype.nextPage = function () {
         if (this.busy) return;
         this.busy = true;
 
-        var orderByParam = '&$orderby=';
-        var filterParam = '&$filter=';
-
         if (this.orderBy != '') {
-            orderByParam = orderByParam.concat(this.orderBy);
+            orderByParam = '&$orderby='.concat(this.orderBy);
         }
         if (this.filter != '') {
-            filterParam = filterParam.concat(this.filter);
+            filterParam = '&$filter='.concat(this.filter);
         }
-        getData('../api/video?$skip='.concat(this.after, orderByParam, filterParam)).then(function (videos) {
-            for (var i = 0; i < videos.length; i++) {
-                this.videos.push(videos[i].data);
+
+        getData('../odata/Videos?$expand=Genres&$skip='.concat(this.videos.length, orderByParam, filterParam)).then(function (data) {
+            var vids = data.value;
+            for (var i = 0; i < vids.length; i++) {
+                this.videos.push(vids[i]);
             }
-            this.after = this.videos[this.videos.length - 1].id;
             this.busy = false;
-        });
+        }.bind(this));
     };
 
-
     library.prototype.getVideo = function (id) {
-        getData('../api/video/'.concat(id, filterParam)).then(function (video) {
+        getData('../odata/Video/'.concat('(', id, ')', filterParam)).then(function (video) {
             return video;
         });
     };
@@ -98,6 +120,8 @@ app.factory('AppService', ['$http', '$q', function ($http, $q) {
 app.controller('HomeCtrl', ['$scope', 'AppService',
     function ($scope, AppService) {
         $scope.Library = new AppService.Library();
+        $scope.layout = 'grid';
+        $scope.Library.nextPage();
     }]);
 
 
@@ -106,8 +130,8 @@ app.controller('DetailsCtrl', ['$scope', 'AppService',
         //hack to get the id form the url
         var id = window.location.pathname.match(/\d+/);
 
-        //AppService.Video(id).then(function (data) {
-        //    $scope.data = $scope.Library.getVideo;
-        //});
+        $scope.Library.getVideo(id).then(function (data) {
+            $scope.data = data;
+        });
     }]);
 

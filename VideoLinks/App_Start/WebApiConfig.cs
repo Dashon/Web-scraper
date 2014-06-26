@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Web.Http;
+using System.Web.Http.OData.Builder;
+using VideoLinks.Models;
 
 namespace VideoLinks
 {
@@ -18,6 +20,16 @@ namespace VideoLinks
                 name: "DefaultApi",
                 routeTemplate: "api/{controller}/{id}",
                 defaults: new { id = RouteParameter.Optional });
+
+            var builder = new ODataConventionModelBuilder();
+            builder.EntitySet<Video>("Videos");
+            builder.EntitySet<Actor>("Actors");
+            builder.EntitySet<Country>("Countries");
+            builder.EntitySet<Genre>("Genres");
+            builder.EntitySet<Link>("Links");
+            builder.EntitySet<Vote>("Votes");
+            builder.EntitySet<Host>("Hosts");
+            config.Routes.MapODataRoute("odata", "odata", builder.GetEdmModel());
 
         }
     }

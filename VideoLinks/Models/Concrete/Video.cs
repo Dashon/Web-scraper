@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
+using VideoLinks.Models.Abstract;
 
 namespace VideoLinks.Models
 {

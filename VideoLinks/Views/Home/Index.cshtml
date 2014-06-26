@@ -18,19 +18,23 @@
     </div>
 
 
-    <ul infinite-scroll="Library.nextPage()" infinite-scroll-distance="3" infinite-scroll-disabled='Library.busy' ng-show="layout == 'grid'" class="grid">
-        <li ng-repeat="video in Library.videos =(Library.videos | filter:{Name:searchVids})">
+    <ul infinite-scroll="Library.nextPage()" infinite-scroll-disabled='Library.busy' ng-show="layout == 'grid'" class="grid">
+        <li ng-repeat="video in Library.videos track by video.Id" ng-show="([video.Name] | filter:searchVids).length > 0">
             <a href="../Video/{{video.Id}}" target=" _blank"><img ng-src="data:image/png;base64,{{video.Image}}" /></a>
             <span>{{video.Name}}</span>
             <div>
                 <span ng-repeat="genre in video.Genres" class="hListItem">{{genre.Name}}</span>
             </div>
         </li>
+        <li ng-click="Library.nextPage()" ng-hide="Library.videos.length < 1" ng-disabled="Library.busy">
+            <input type="button" value="More!" />
+        </li>
     </ul>
 
 
-    <ul infinite-scroll="Library.nextPage()" infinite-scroll-distance="3" infinite-scroll-disabled='Library.busy' ng-show="layout == 'list'" class="list">
-        <li ng-repeat="video in Library.videos | filter:{Name:searchVids}">
+    <div infinite-scroll="Library.nextPage()" infinite-scroll-distance='1' ng-show="layout == 'list'" class="list">
+        <div ng-repeat="video in Library.videos track by video.Id" ng-show="([video.Name] | filter:searchVids).length >
+            0">
             <a href="../Video/{{video.Id}}" target="_blank">
                 <img ng-src="data:image/png;base64,{{video.Image}}" />
             </a>
@@ -40,8 +44,10 @@
             <p>
                 <span ng-repeat="genre in video.Genres" class="hListItem">{{genre.Name}}</span>
             </p>
-        </li>
-    </ul>
-    <div ng-hide="Library.videos.length" class="NoResults">No results found</div>
+        </div>
+    </div>
     <br class="clearfix" />
+    <modal-dialog show='Library.busy' width="200px">
+        Loading Movies...
+    </modal-dialog>
 </div>
