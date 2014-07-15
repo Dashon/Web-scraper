@@ -24,7 +24,7 @@ namespace VideoLinks.Controllers.Api
         private VideosEntities db = new VideosEntities();
 
         // GET: odata/Videos
-        [Queryable(PageSize =50 )]
+        [Queryable(PageSize =10 )]
         public IQueryable<Video> GetVideos()
         {
             return db.Videos;

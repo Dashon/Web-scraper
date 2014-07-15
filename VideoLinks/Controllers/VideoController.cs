@@ -55,7 +55,7 @@ namespace VideoLinks.Controllers
         public void DownloadAllMovies()
         {
             var scraper = new PrimeWireScraper();
-            scraper.DownloadAllMovies(false);
+            scraper.DownloadAllMovies(false,10);
         }
 
     }
