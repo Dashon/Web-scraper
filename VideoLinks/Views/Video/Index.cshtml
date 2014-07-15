@@ -5,22 +5,22 @@
 
 <div ng-controller="DetailsCtrl">
 
-    <h2>{{data.video.Name}}</h2>
+    <h2>{{data.Name}}</h2>
 
     <div class="video_details">
         <div>
-            {{data.video.Description}}
+            {{data.Description}}
         </div>
         <br />
         <table>
             <tbody>
-                <tr ng-show="data.video.ReleaseDate">
+                <tr ng-show="data.ReleaseDate">
                     <th> Released: </th>
-                    <td> {{data.video.ReleaseDate | date: 'longDate'}} </td>
+                    <td> {{data.ReleaseDate | date: 'longDate'}} </td>
                 </tr>
-                <tr ng-show="data.video.Runtime">
+                <tr ng-show="data.Runtime">
                     <th> RunTime: </th>
-                    <td> {{data.video.Runtime}} mins </td>
+                    <td> {{data.Runtime}} mins </td>
                 </tr>
                 <tr ng-show="data.Genres">
                     <th> Generes: </th>
@@ -43,20 +43,20 @@
 
         <br />
         <div class="video_details links">
-            <a href="{{data.video.ImdbLink}}">IMDB</a> |
-            <a href="{{data.video.TrailerLink}}">Trailer</a> |
-            <a href="{{data.video.BuyLink}}">Buy</a> |
+            <a href="{{data.ImdbLink}}">IMDB</a> @*|
+            <a href="{{data.TrailerLink}}">Trailer</a> |
+            <a href="{{data.BuyLink}}">Buy</a> |*@
         </div>
 
     </div>
 
     <div class="video_pic">
-        <img ng-src="data:image/png;base64,{{data.video.Image}}" />
+        <img ng-src="data:image/png;base64,{{data.Image}}" />
     </div>
 
     <br class="clearfix" />
 
-    <h2>{{data.video.Name}} Links</h2>
+    <h2>{{data.Name}} Links</h2>
     <ul class="video_links">
         <li ng-repeat="link in data.Links">
             {{link.Quality}} - <a href="{{link.URL}}">Version {{$index + 1}}</a> -------->{{link.Host.Name}}

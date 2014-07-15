@@ -29,28 +29,7 @@ var app = angular.module('videoLinks', ['ngRoute', 'infinite-scroll']).directive
 
 app.config(['$routeProvider', '$locationProvider', '$httpProvider', function ($routeProvider, $locationProvider, $httpProvider) {
 
-    //================================================
-    // Add an interceptor for AJAX errors
-    //================================================
-    $httpProvider.responseInterceptors.push(['$q', '$location', function ($q, $location) {
-        return function (promise) {
-            return promise.then(
-              // Success: just return the response
-              function (response) {
-                  return response;
-              },
-              // Error: check the error status to get only the 401
-              function (response) {
-                  if (response.status === 401)
-                      $location.url('/signin');
-                  return $q.reject(response);
-              }
-            );
-        }
-    }]);
-
     $locationProvider.html5Mode(true);
-
 }]);
 
 
@@ -87,9 +66,7 @@ app.service('AppService', ['$http', '$q', function ($http, $q) {
     };
 
     library.prototype.getVideo = function (id) {
-        getData('../odata/Video/'.concat('(', id, ')', filterParam)).then(function (video) {
-            return video;
-        });
+        return getData('../odata/Videos/'.concat('(', id, ')', filterParam));
     };
 
     function getData(endpoint) {
@@ -129,6 +106,7 @@ app.controller('DetailsCtrl', ['$scope', 'AppService',
     function ($scope, AppService) {
         //hack to get the id form the url
         var id = window.location.pathname.match(/\d+/);
+        $scope.Library = new AppService.Library();
 
         $scope.Library.getVideo(id).then(function (data) {
             $scope.data = data;

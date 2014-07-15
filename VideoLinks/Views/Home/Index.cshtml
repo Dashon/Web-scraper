@@ -9,15 +9,13 @@
 }
 
 @*<script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.0.7/angular-resource.min.js"></script>s*@
-<div id="" ng-controller="HomeCtrl" ng-cloak>
+<div id="" ng-controller="HomeCtrl">
 
     <div class="bar">
         <input type="text" ng-model="searchVids" placeholder="Search Titles">
         <a class="list-icon" ng-class="{active: layout == 'list'}" ng-click="layout = 'list'"></a>
         <a class="grid-icon" ng-class="{active: layout == 'grid'}" ng-click="layout = 'grid'"></a>
     </div>
-
-
     <ul infinite-scroll="Library.nextPage()" infinite-scroll-disabled='Library.busy' ng-show="layout == 'grid'" class="grid">
         <li ng-repeat="video in Library.videos track by video.Id" ng-show="([video.Name] | filter:searchVids).length > 0">
             <a href="../Video/{{video.Id}}" target=" _blank"><img ng-src="data:image/png;base64,{{video.Image}}" /></a>
@@ -29,6 +27,8 @@
         <li ng-click="Library.nextPage()" ng-hide="Library.videos.length < 1" ng-disabled="Library.busy">
             <input type="button" value="More!" />
         </li>
+        <li class="clearfix" />
+
     </ul>
 
 
@@ -45,9 +45,27 @@
                 <span ng-repeat="genre in video.Genres" class="hListItem">{{genre.Name}}</span>
             </p>
         </div>
+
     </div>
     <br class="clearfix" />
     <modal-dialog show='Library.busy' width="200px">
         Loading Movies...
     </modal-dialog>
 </div>
+<div class='row'>
+    <div class='twelve columns'>
+        <hr>
+    </div>
+</div>
+<style>
+    .twelve, .row .twelve {
+        width: 100%;
+    }
+
+    column, .columns {
+        float: left;
+        min-height: 1px;
+        padding: 0 15px;
+        position: relative;
+    }
+</style>
